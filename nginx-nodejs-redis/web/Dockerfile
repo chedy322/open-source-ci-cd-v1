@@ -1,9 +1,27 @@
-FROM node:14.17.3-alpine3.14
+# Uuse multi-layers
+FROM node:20-alpine AS build
 
 WORKDIR /usr/src/app
 
 COPY package.json package-lock.json ./
-RUN npm ci
+# We store the node_module in locker inside the hard drive
+
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
+
 COPY ./server.js ./
 
-CMD ["npm","start"]
+
+FROM node:20-alpine AS final
+WORKDIR /app
+# Change to non root user for secuirty vulnaribilies
+RUN addgroup -S myGroup && adduser -S nonrootuser  -G myGroup
+
+
+COPY --from=build --chown=nonrootuser:myGroup /usr/src/app/node_modules ./node_modules
+COPY --from=build --chown=nonrootuser:myGroup /usr/src/app/server.js ./server.js
+USER nonrootuser
+
+CMD ["node","server.js"]
+
+

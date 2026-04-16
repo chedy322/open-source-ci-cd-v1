@@ -1,27 +1,64 @@
-
 services:
   redis:
-    image: 'redislabs/redismod'
+    image: redis:alpine
     ports:
       - '6379:6379'
+    volumes: 
+      - redis_data:/data
+    networks:
+      - backend
   web1:
+    env_file: ".env"
     restart: on-failure
-    build: ./web
+    networks:
+          - backend
+    # build:
+    #   context: ./web
+    #   dockerfile: Dockerfile
+    # image: myapp:${APP_VERSION:-latest}
+    image: docker.io/${DOCKERHUB_USERNAME}/${WEB_IMAGE_NAME}:${GITHUB_SHA}
     hostname: web1
-    ports:
-      - '81:5000'
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5000 || exit 1"]
+      interval: 30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+      
+
   web2:
+    env_file: ".env"
+    networks:
+        - backend
+    image: myapp:${APP_VERSION:-latest}
     restart: on-failure
-    build: ./web
     hostname: web2
-    ports:
-      - '82:5000'
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5000 || exit 1"]
+      interval: 30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+
+    
   nginx:
-    build: ./nginx
+    # build: ./nginx
+    # image: nginx:v1.0.1
+    image: docker.io/${DOCKERHUB_USERNAME}/${NGINX_IMAGE_NAME}:${GITHUB_SHA}
+    container_name: nginx1
     ports:
     - '80:80'
     depends_on:
-    - web1
-    - web2
+      web1:
+        condition: service_healthy
+      web2:
+        condition: service_healthy
+    networks:
+      - backend
 
 
+volumes:
+  redis_data:
+
+networks:
+  backend:
