@@ -6,7 +6,7 @@ name: Ci/cd Pipeline for web and nginx
 
 on:
   push:
-    branches: ["main"]
+    branches: ["master"]
     paths_ignore: [".md"]
 
 permissions:
