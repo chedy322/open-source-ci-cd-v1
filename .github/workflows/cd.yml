@@ -4,10 +4,10 @@ on:
   repository_dispatch:
     types: [cd-dispatch-event]
 
-environment:
+env:
     web_image: mywebappnode
     nginx_image: mynginxnode
-    sha: ${{github.event.client-payload.sha}}
+    
   
 jobs:
   promote:
@@ -22,17 +22,17 @@ jobs:
 
       - name: Pull images
         run: |
-          docker pull docker.io/${{ vars.DOCKERHUB_USERNAME }}/${{env.web_image}}:${{ inputs.sha }}
-          docker pull docker.io/${{ vars.DOCKERHUB_USERNAME }}/${{env.nginx_image}}:${{ inputs.sha }}
+          docker pull docker.io/${{ vars.DOCKERHUB_USERNAME }}/${{env.web_image}}:${{ github.event.client_payload.sha }}
+          docker pull docker.io/${{ vars.DOCKERHUB_USERNAME }}/${{env.nginx_image}}:${{ github.event.client_payload.sha }}
 
       - name: Tag as production
         run: |
           docker tag \
-            docker.io/${{ vars.DOCKERHUB_USERNAME }}/${{env.web_image}}:${{ inputs.sha }} \
+            docker.io/${{ vars.DOCKERHUB_USERNAME }}/${{env.web_image}}:${{ github.event.client_payload.sha }} \
             docker.io/${{ vars.DOCKERHUB_USERNAME }}/${{env.web_image}}:prod
 
           docker tag \
-            docker.io/${{ vars.DOCKERHUB_USERNAME }}/${{env.nginx_image}}:${{ inputs.sha }} \
+            docker.io/${{ vars.DOCKERHUB_USERNAME }}/${{env.nginx_image}}:${{ github.event.client_payload.sha }} \
             docker.io/${{ vars.DOCKERHUB_USERNAME }}/${{env.nginx_image}}:prod
 
       - name: Push production tags

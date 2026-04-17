@@ -71,8 +71,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run Snyk to check for vulnerabilities
-
-        uses: snyk/actions/node@v4
+        uses: snyk/actions/node@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
@@ -81,7 +80,9 @@ jobs:
   # finish from chatgpt concversation for improvements
   docker-build:
     needs: [security,GitGuadian,changes]
-    if: ${{needs.changes.outputs.web =='true'}} || ${{needs.changes.outputs.nginx=='true'}}
+    if: |
+        needs.changes.outputs.web =='true' ||
+        needs.changes.outputs.nginx=='true' 
     runs-on: ubuntu-latest
     environment: staging
     outputs:
@@ -153,7 +154,7 @@ jobs:
       - name: Trigger dispatch event
         uses: peter-evans/repository-dispatch@v4
         with:
-          event: cd-dispatch-event
+          event-type: cd-dispatch-event
           token: ${{secrets.GITHUB_ACTIONS}}
           client-payload: |
             {
