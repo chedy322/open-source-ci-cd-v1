@@ -66,7 +66,6 @@ jobs:
   security:
     needs: [changes,GitGuadian]
     environment: staging
-    if: ${{needs.changes.outputs.web=='true'}} && success()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
