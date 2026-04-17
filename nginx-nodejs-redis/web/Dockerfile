@@ -4,8 +4,8 @@ FROM node:20-alpine AS build
 WORKDIR /usr/src/app
 
 COPY package.json package-lock.json ./
-# We store the node_module in locker inside the hard drive
 
+# We store the node_module in locker inside the hard drive
 RUN --mount=type=cache,target=/root/.npm \
     npm ci
 

@@ -8,7 +8,7 @@ environment:
     web_image: mywebappnode
     nginx_image: mynginxnode
     sha: ${{github.event.client-payload.sha}}
-    
+  
 jobs:
   promote:
     runs-on: ubuntu-latest
