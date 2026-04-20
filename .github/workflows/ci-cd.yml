@@ -43,10 +43,10 @@ jobs:
           with: 
             filters: |
               web:
-                - 'web/**'
-                - 'package*.json'
+                - 'nginx-nodejs-redis/web/**'
+                - 'nginx-nodejs-redis/web/package*.json'
               nginx:
-                - 'nginx/**'
+                - 'nginx-nodejs-redis/nginx/**'
 
   # run secrets tests
   GitGuadian:
