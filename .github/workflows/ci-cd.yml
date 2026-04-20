@@ -66,9 +66,8 @@ jobs:
           GITHUB_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
 
-  # run tests for the packajson
-
-  security:
+  # run tests for the packages
+  snyk-security:
     needs: [changes,GitGuadian]
     environment: staging
     runs-on: ubuntu-latest
@@ -82,11 +81,38 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: upload-security.sarif
+  sast-scan:
+    runs-on: ubuntu-latest 
+    needs: [changes,GitGuadian]
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v4
+
+      - name: Run thee SAST scan
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Run CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:javascript-typescript 
+    
+
   # promote to prod
   # use differnet workflow for cd
   # finish from chatgpt concversation for improvements
   docker-build:
-    needs: [security,GitGuadian,changes]
+    needs: [snyk-security,GitGuadian,changes]
     if: |
         needs.changes.outputs.web =='true' ||
         needs.changes.outputs.nginx=='true' 
@@ -136,6 +162,39 @@ jobs:
             tags: |
                    docker.io/${{ vars.DOCKERHUB_USERNAME }}/${{ env.nginx_image }}:${{ steps.ImageTag.outputs.githubsha }}
 
+  trivy-image-scan:
+    needs: [docker-build]
+    runs-on: ubuntu-latest
+    environment: staging
+    strategy:
+      matrix:
+        image_name: 
+          - "docker.io/${{ vars.DOCKERHUB_USERNAME }}/my-web-app:${{ needs.docker-build.outputs.image_sha }}"
+          - "docker.io/${{ vars.DOCKERHUB_USERNAME }}/my-nginx:${{ needs.docker-build.outputs.image_sha }}"
+    steps:
+      - name: Checkout the code repository
+        uses: actions/checkout@v4
+
+      - name: Pull the web and nginx images from docker registry
+        run: docker pull ${{matrix.image_name}}
+      
+      - name: Scan the images
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type:  image
+          image-ref: ${{matrix.image_name}}
+          severity:   CRITICAL,HIGH
+          exit-code:  '1'
+          ignore-unfixed: true 
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+
+        
+        
   test-images:
     needs: [docker-build]
     environment: staging
@@ -155,7 +214,7 @@ jobs:
       - name: Clean up
         if: always()
         run: docker compose down
-        
+
   CD-trigger:
     runs-on: ubuntu-latest
     needs: [test-images,docker-build]
@@ -175,7 +234,3 @@ jobs:
 
 
       
-
-
-
-

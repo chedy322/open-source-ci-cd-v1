@@ -17,8 +17,8 @@ WORKDIR /app
 # Change to non root user for secuirty vulnaribilies
 RUN addgroup -S myGroup && adduser -S nonrootuser  -G myGroup
 
-
-COPY --from=build --chown=nonrootuser:myGroup /usr/src/app/node_modules ./node_modules
+COPY package*.json .
+RUN npm ci --only=production
 COPY --from=build --chown=nonrootuser:myGroup /usr/src/app/server.js ./server.js
 USER nonrootuser
 
